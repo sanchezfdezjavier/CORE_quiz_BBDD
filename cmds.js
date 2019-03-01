@@ -151,7 +151,24 @@ exports.editCmd = (rl, id) => {
  * @param id Clave del quiz a probar.
  */
 exports.testCmd = (rl, id) => {
-    log('Probar el quiz indicado.', 'red');
+    //Checking id
+    if(id === undefined || id === '' || id<0 || id > model.getAll().length ){
+        log(colorize('Error: Id no válido', 'red'));
+    }else{
+        //Getting data
+        let element = model.getByIndex(id);
+        let qstn = element.question;
+        let answer = element.answer;
+
+        //User input
+        rl.question(colorize(qstn + ': \n ', 'blue'), userAnsw => {
+            if(userAnsw === answer){
+                log(colorize('Correcto', 'green'));
+            }else{
+                log(colorize('Incorrecto', 'red'));
+            }
+        })
+    }
     rl.prompt();
 };
 
@@ -162,9 +179,46 @@ exports.testCmd = (rl, id) => {
  *
  * @param rl Objeto readline usado para implementar el CLI.
  */
+
+//Auxiliar play function
+ function shuffle(a) {
+    var j, x, i;
+    for (i = a.length - 1; i > 0; i--) {
+        j = Math.floor(Math.random() * (i + 1));
+        x = a[i];
+        a[i] = a[j];
+        a[j] = x;
+    }
+    return a;
+}
+
 exports.playCmd = rl => {
-    log('Jugar.', 'red');
-    rl.prompt();
+    //Getting and shuffle data
+    let questionStack = shuffle(model.getAll());
+    //While finisher
+    let continuee = true;
+    let conter = 0;
+
+    while(continuee && questionStack.length !== 0){
+        let quiz = questionStack.pop();
+        let qsnt = quiz.question;
+        let answ = quiz.answer;
+        let aciertos = 0;
+
+        rl.question(colorize(qsnt + ':\n', 'blue'), userAnsw => {
+            if(userAnsw === answ){
+                aciertos+=1;
+                log(colorize('Correcto', 'green'));
+            }else{
+                log(colorize('incorrect', 'red'));
+                log(colorize(`aciertos: ${aciertos}`));
+                log(colorize('fin', 'red'));
+                continuee = false;
+                rl.prompt();
+            }
+            log(colorize(`aciertos: ${aciertos}`));
+        })
+    }
 };
 
 
@@ -175,8 +229,7 @@ exports.playCmd = rl => {
  */
 exports.creditsCmd = rl => {
     log('Autores de la práctica:');
-    log('Nombre 1', 'green');
-    log('Nombre 2', 'green');
+    log('Javier Sánchez Fernández', 'green');
     rl.prompt();
 };
 
