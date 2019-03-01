@@ -1,5 +1,5 @@
 
-
+const Sequelize = require('sequelize');
 const {log, biglog, errorlog, colorize} = require("./out");
 const {models} = require('./model');
 
@@ -46,7 +46,7 @@ exports.listCmd = rl => {
 };
 //Aux function
 const validateId = id => {
-    return new Promise((resolve, reject)=> {
+    return new Sequelize.Promise((resolve, reject)=> {
         if(typeof id === "undefined"){
             reject(new Error(`Falta el parámetro <id>.`));
         }else{
@@ -66,6 +66,7 @@ const validateId = id => {
  * @param id Clave del quiz a mostrar.
  */
 exports.showCmd = (rl, id) => {
+    log(models);
     validateId(id)
     .then(id => models.quiz.findById(id))
     .then(quiz => {
@@ -82,6 +83,13 @@ exports.showCmd = (rl, id) => {
     });
 };  
 
+const makeQuestion = (rl, text)=>{
+    return new Sequelize.Promise((resolve, reject)=>{
+        rl.question(colorize(text, 'red'), answer => {
+            resolve(answer.trim()); //delete black spaces
+        });
+    });
+};
 
 /**
  * Añade un nuevo quiz al módelo.
@@ -95,15 +103,25 @@ exports.showCmd = (rl, id) => {
  * @param rl Objeto readline usado para implementar el CLI.
  */
 exports.addCmd = rl => {
-
-    rl.question(colorize(' Introduzca una pregunta: ', 'red'), question => {
-
-        rl.question(colorize(' Introduzca la respuesta ', 'red'), answer => {
-
-            model.add(question, answer);
-            log(` ${colorize('Se ha añadido', 'magenta')}: ${question} ${colorize('=>', 'magenta')} ${answer}`);
-            rl.prompt();
+    makeQuestion(rl, 'Introduzca la respuesta')
+    .then(userQuestion => {
+        return makeQuestion(rl, 'Introduzca la respuesta')
+        .then(userAnsw => {
+            return {question: userQuestion, answer: userAnsw};
         });
+    })
+    .then(quiz => {
+        log(` ${colorize('Se ha añadido', 'magenta')}: ${quiz.question} ${colorize('=>', 'magenta')} ${quiz.answer}`);
+    })
+    .catch(Sequelize.ValidationError, error => {
+        errorlog('El quiz es erroneo:');
+        error.errors.forEach(({message}) => errorlog(message));
+    })
+    .catch(error => {
+        errorlog(error.message);
+    })
+    .then(()=>{
+        rl.prompt();
     });
 };
 
@@ -115,16 +133,14 @@ exports.addCmd = rl => {
  * @param id Clave del quiz a borrar en el modelo.
  */
 exports.deleteCmd = (rl, id) => {
-    if (typeof id === "undefined") {
-        errorlog(`Falta el parámetro id.`);
-    } else {
-        try {
-            model.deleteByIndex(id);
-        } catch(error) {
-            errorlog(error.message);
-        }
-    }
-    rl.prompt();
+    validateId(id)
+    .then(id => models.quiz.destroy({where: {id}}))
+    .catch(error =>{
+        errorlog(error.message);
+    })
+    .then(()=>{
+        rl.prompt();
+    });
 };
 
 
@@ -140,30 +156,31 @@ exports.deleteCmd = (rl, id) => {
  * @param id Clave del quiz a editar en el modelo.
  */
 exports.editCmd = (rl, id) => {
-    if (typeof id === "undefined") {
-        errorlog(`Falta el parámetro id.`);
-        rl.prompt();
-    } else {
-        try {
-            const quiz = model.getByIndex(id);
-
-            process.stdout.isTTY && setTimeout(() => {rl.write(quiz.question)},0);
-
-            rl.question(colorize(' Introduzca una pregunta: ', 'red'), question => {
-
-                process.stdout.isTTY && setTimeout(() => {rl.write(quiz.answer)},0);
-
-                rl.question(colorize(' Introduzca la respuesta ', 'red'), answer => {
-                    model.update(id, question, answer);
-                    log(` Se ha cambiado el quiz ${colorize(id, 'magenta')} por: ${question} ${colorize('=>', 'magenta')} ${answer}`);
-                    rl.prompt();
-                });
-            });
-        } catch (error) {
-            errorlog(error.message);
-            rl.prompt();
+    validateId(id)
+    .then(id => models.quiz.findById(id))
+    .then(quiz => {
+        if(!quiz){
+            throw new Error(`No existe un quiz asociado al id=${id}.`);
         }
-    }
+
+        process.stdout.isTTY && setTimeout(()=> {rl.write(quiz.question)},0);
+        return makeQuestion(rl, 'Introduzca la pregunta: ')
+        .then(userQuestion => {
+            process.stdout.isTTY && setTimeout(()=>{rl.write(quiz.answer)},0);
+            return makeQuestion(rl, 'Introduzca la respuesta ')
+            .then(userAnsw => {
+                quiz.question = userQuestion;
+                quiz.answer = userAnsw;
+                return quiz;
+            });
+        });
+    })
+    .then(quiz => {
+        return quiz.save();
+    })
+    .then(quiz => {
+        log(` Se ha cambiado el quiz ${colorize(quiz.id, 'magenta')} por: ${quiz.question} ${colorize('=>', 'magenta')} ${quiz.userQuestion}`);
+    })
 };
 
 
