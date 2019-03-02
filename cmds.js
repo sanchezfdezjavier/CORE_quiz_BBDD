@@ -203,25 +203,32 @@ exports.editCmd = (rl, id) => {
  * @param id Clave del quiz a probar.
  */
 exports.testCmd = (rl, id) => {
-    //Checking id
-    if(id === undefined || id === '' || id<0 || id > model.getAll().length ){
-        log(colorize('Error: Id no válido', 'red'));
-    }else{
-        //Getting data
-        let element = model.getByIndex(id);
-        let qstn = element.question;
-        let answer = element.answer;
-
-        //User input
-        rl.question(colorize(qstn + ': \n ', 'blue'), userAnsw => {
-            if(userAnsw === answer){
-                log(colorize('Correcto', 'green'));
-            }else{
-                log(colorize('Incorrecto', 'red'));
-            }
-        })
-    }
-    rl.prompt();
+    validateId(id)
+    .then(id => models.quiz.findById(id))
+    .then(quiz => {
+        if(!quiz){
+            throw new Error(`No existe un quiz asociado al id=${id}.`);
+        }
+    return makeQuestion(rl, 'Introduzca la respuesta: ')
+    .then(userAnsw => {
+        if(userAnsw === quiz.answer){
+            log(colorize('Correcto', 'green'));
+        }else{
+            log(colorize('Incorrecto', 'red'));
+        }
+        rl.prompt();
+    });
+   })
+   .catch(Sequelize.ValidationError, error => {
+        errorlog('El quiz es erroneo: ');
+        error.errors.forEach(({message})=>errorlog(message));
+    })
+    .catch(error=>{
+        errorlog(error.message);
+    })
+    .then(()=> {
+        rl.prompt();
+    });
 };
 
 
