@@ -5,7 +5,7 @@ const{models} = require('./model');
 
 
 /**
- * Muestra la ayuda. 
+ * Muestra la ayuda.
  *
  * @param rl Objeto readline usado para implementar el CLI.
  */
@@ -75,12 +75,12 @@ exports.showCmd = (rl, id) => {
         log(` [${colorize(quiz.id, 'magenta')}]: ${quiz.question} ${colorize('=>', 'magenta')} ${quiz.answer}`);
     })
     .catch(error => {
-        errorlog(error.message); 
+        errorlog(error.message);
     })
     .then(()=> {
         rl.prompt();
     });
-};  
+};
 //Aux function
 const makeQuestion = (rl, text)=>{
     return new Sequelize.Promise((resolve, reject)=>{
@@ -252,32 +252,67 @@ exports.testCmd = (rl, id) => {
 }
 
 exports.playCmd = rl => {
-    //Getting and shuffle data
-    let questionStack = shuffle(model.getAll());
-    //While finisher
-    let continuee = true;
-    let conter = 0;
+    // //Getting and shuffle data
+    // let questionStack = shuffle(model.getAll());
+    // //While finisher
+    // let continuee = true;
+    // let conter = 0;
+    // while(continuee && questionStack.length !== 0){
+    //     let quiz = questionStack.pop();
+    //     let qsnt = quiz.question;
+    //     let answ = quiz.answer;
+    //     let aciertos = 0;
 
-    while(continuee && questionStack.length !== 0){
-        let quiz = questionStack.pop();
-        let qsnt = quiz.question;
-        let answ = quiz.answer;
-        let aciertos = 0;
+    //     rl.question(colorize(qsnt + ':\n', 'blue'), userAnsw => {
+    //         if(userAnsw === answ){
+    //             aciertos+=1;
+    //             log(colorize('Correcto', 'green'));
+    //         }else{
+    //             log(colorize('incorrect', 'red'));
+    //             log(colorize(`aciertos: ${aciertos}`));
+    //             log(colorize('fin', 'red'));
+    //             continuee = false;
+    //             rl.prompt();
+    //         }
 
-        rl.question(colorize(qsnt + ':\n', 'blue'), userAnsw => {
-            if(userAnsw === answ){
-                aciertos+=1;
-                log(colorize('Correcto', 'green'));
-            }else{
-                log(colorize('incorrect', 'red'));
-                log(colorize(`aciertos: ${aciertos}`));
-                log(colorize('fin', 'red'));
-                continuee = false;
-                rl.prompt();
-            }
-            log(colorize(`aciertos: ${aciertos}`));
-        })
-    }
+    //         log(colorize(`aciertos: ${aciertos}`));
+    //     })
+    // }
+    //Filling the quiz stack
+    //score count
+    let score = 0;
+    models.quiz.findAll()
+    .then(qs => {
+        let quizStack = shuffle(qs);
+        let stop = false;
+
+        while(!stop && quizStack.length !== 0){
+            let quiz = quizStack.pop();
+            let question = quiz.question;
+            let answer = quiz.answer;
+
+            return makeQuestion(rl, question)
+            .then(userAnsw => {
+                if(userAnsw === answer){
+                    log(colorize('Correcto', 'green'));
+                    log(colorize(`Aciertos: ${score}`, 'green'));
+                }else{
+                    log(colorize('Incorrecto', 'red'));
+                    log(colorize(`Aciertos: ${score}`, 'green'));
+                    rl.prompt();
+                }
+            })
+            .catch(Sequelize.ValidationError, error => {
+                errorlog('El quiz es erroneo: ');
+                error.errors.forEach(({message})=>errorlog(message));
+            })
+            .catch(error=>{
+                errorlog(error.message);
+            })
+        }
+        log(colorize(`Aciertos: ${score}`, 'green'));
+        rl.prompt()
+    })
 };
 
 
