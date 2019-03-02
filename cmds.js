@@ -294,6 +294,7 @@ exports.playCmd = rl => {
             return makeQuestion(rl, question)
             .then(userAnsw => {
                 if(userAnsw === answer){
+                    score++;
                     log(colorize('Correcto', 'green'));
                     log(colorize(`Aciertos: ${score}`, 'green'));
                 }else{
