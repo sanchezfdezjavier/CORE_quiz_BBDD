@@ -297,21 +297,21 @@ exports.playCmd = rl => {
                     log(colorize('Correcto', 'green'));
                     log(colorize(`Aciertos: ${score}`, 'green'));
                 }else{
+                    log(colorize('Fin', 'magenta'));
                     log(colorize('Incorrecto', 'red'));
                     log(colorize(`Aciertos: ${score}`, 'green'));
                     rl.prompt();
                 }
             })
-            .catch(Sequelize.ValidationError, error => {
-                errorlog('El quiz es erroneo: ');
-                error.errors.forEach(({message})=>errorlog(message));
-            })
-            .catch(error=>{
-                errorlog(error.message);
-            })
         }
         log(colorize(`Aciertos: ${score}`, 'green'));
         rl.prompt()
+    }).catch(Sequelize.ValidationError, error => {
+        errorlog('El quiz es erroneo: ');
+        error.errors.forEach(({message})=>errorlog(message));
+    })
+    .catch(error=>{
+        errorlog(error.message);
     })
 };
 
