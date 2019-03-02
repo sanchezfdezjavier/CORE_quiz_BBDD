@@ -1,7 +1,7 @@
 
 const Sequelize = require('sequelize');
 const {log, biglog, errorlog, colorize} = require("./out");
-const {models} = require('./model');
+const{models} = require('./model');
 
 
 /**
@@ -50,7 +50,7 @@ const validateId = id => {
         if(typeof id === "undefined"){
             reject(new Error(`Falta el parámetro <id>.`));
         }else{
-            id = parent(id); //picks the integer part
+            id = parseInt(id); //picks the integer part
             if(Number.isNaN(id)){
                 reject(new Error(`El valor del parametro <id> no es un número.`));
             }else{
@@ -66,7 +66,6 @@ const validateId = id => {
  * @param id Clave del quiz a mostrar.
  */
 exports.showCmd = (rl, id) => {
-    log(models);
     validateId(id)
     .then(id => models.quiz.findById(id))
     .then(quiz => {
@@ -76,7 +75,7 @@ exports.showCmd = (rl, id) => {
         log(` [${colorize(quiz.id, 'magenta')}]: ${quiz.question} ${colorize('=>', 'magenta')} ${quiz.answer}`);
     })
     .catch(error => {
-        errorlog(error.message);
+        errorlog(error.message); 
     })
     .then(()=> {
         rl.prompt();
