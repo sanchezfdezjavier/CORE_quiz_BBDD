@@ -81,7 +81,7 @@ exports.showCmd = (rl, id) => {
         rl.prompt();
     });
 };  
-
+//Aux function
 const makeQuestion = (rl, text)=>{
     return new Sequelize.Promise((resolve, reject)=>{
         rl.question(colorize(text, 'red'), answer => {
@@ -102,12 +102,15 @@ const makeQuestion = (rl, text)=>{
  * @param rl Objeto readline usado para implementar el CLI.
  */
 exports.addCmd = rl => {
-    makeQuestion(rl, 'Introduzca la respuesta')
+    makeQuestion(rl, 'Introduzca la pregunta: ')
     .then(userQuestion => {
-        return makeQuestion(rl, 'Introduzca la respuesta')
+        return makeQuestion(rl, 'Introduzca la respuesta: ')
         .then(userAnsw => {
             return {question: userQuestion, answer: userAnsw};
         });
+    })
+    .then(quiz => {
+        return models.quiz.create(quiz);
     })
     .then(quiz => {
         log(` ${colorize('Se ha añadido', 'magenta')}: ${quiz.question} ${colorize('=>', 'magenta')} ${quiz.answer}`);
@@ -179,6 +182,16 @@ exports.editCmd = (rl, id) => {
     })
     .then(quiz => {
         log(` Se ha cambiado el quiz ${colorize(quiz.id, 'magenta')} por: ${quiz.question} ${colorize('=>', 'magenta')} ${quiz.userQuestion}`);
+    })
+    .catch(Sequelize.ValidationError, error => {
+        errorlog('El quiz es erroneo: ');
+        error.errors.forEach(({message})=>errorlog(message));
+    })
+    .catch(error=>{
+        errorlog(error.message);
+    })
+    .then(()=> {
+        rl.prompt();
     })
 };
 
